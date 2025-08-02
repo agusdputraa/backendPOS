@@ -8,7 +8,7 @@ const registerUser = async (req, res) => {
     try {
         db.query("SELECT COUNT(*) as userCount FROM users", async (error, results) => {
             if (error) {
-                return res.status(500).json({ error: "Gagal memeriksa database." });
+                return res.status(500).json({ error: "Failed to check database." });
             }
 
             const { userCount } = results[0];
@@ -25,17 +25,17 @@ const registerUser = async (req, res) => {
 
             db.query(query, params, (error, result) => {
                 if (error) {
-                    return res.status(500).json({ error: "Gagal mendaftarkan user: " + error.message });
+                    return res.status(500).json({ error: "Failed to register: " + error.message });
                 }
 
                 res.status(201).json({
-                    message: `User berhasil terdaftar sebagai ${role}!`,
+                    message: `User successfully registered as ${role}!`,
                     userId: userId
                 });
             });
         });
     } catch (error) {
-        res.status(500).json({ error: "Terjadi kesalahan pada server." });
+        res.status(500).json({ error: "Internal Server Error." });
     }
 };
 
