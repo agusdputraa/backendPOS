@@ -69,13 +69,19 @@ const loginUser = (req, res) => {
 
         res.status(200).json({
             message: "Login successfull",
-            token: token
+            token: token,
+            
+            user: {
+                fullName: `${user.first_name} ${user.last_name}`,
+                email: user.email,
+                role: user.role
+            }
         });
     });
 };
 
 const getUsers = (req, res) => {
-    const query = "SELECT id, first_name, last_name, email, role, password FROM users";
+    const query = "SELECT id, CONCAT(first_name, ' ', last_name) AS fullName, email, role FROM users";
 
     db.query(query, (error, results) => {
         if (error) {
@@ -83,14 +89,75 @@ const getUsers = (req, res) => {
         }
 
         res.status(200).json({
-            message: "Getting all users data successfull.",
+            message: "Getting all users data successfully.",
             data: results
         });
     });
 };
 
+const updateUserProfile = (req, res) => {
+    const userId = req.user.id
+    const { first_name, last_name, email } = req.body
+    
+    const query = "UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE id = ?"
+    db.query(query, [first_name, last_name, email, userId], (error, result) => {
+        if (error) {
+            return res.status(500).json({ error: "Failed to update profile: " + error.message })
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "User not found." })
+        }
+        res.status(200).json({ message: "Profile successfully updated."})
+    })
+}
+
+const updateUserPassword = async (req, res) => {
+    const userID = req.user.id
+    const { oldPassword, newPassword } = req.body
+
+    db. query("SELECT password FROM users WHERE id = ?", [userId], async (error, results) => {
+        if (error || results.length === 0) {
+            return res.status(500).json({ error: "User not found."})
+        }
+        
+        const user = results[0]
+
+        const isPasswordMatch = await bcrypt.compare(oldPassword, user.password)
+        if (!isPasswordMatch) {
+            return res.status(401).json({ error: "Old Password incorrect"})
+        }
+        
+        const newHashedPassword = await bcrypt.hash(newPassword, 10)
+
+        db.query("UPDATE users SET password = ? WHERE id = ?", [newHashedPassword, userId], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: "Failed to update password."})
+            }
+            res.status(200).json({ message: "Password successfully updated."})
+        })
+    })
+}
+
+const deleteUser = (req, res) => {
+    const userIdToDelete = req.params.id
+
+    const query = "DELETE FROM users WHERE id = ?"
+    db.query(query, [userIdToDelete], (error, result) => {
+        if (error) {
+            return res.status(500).json({ error: "Failed to delete user"})
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "User not found."})
+        }
+        res.status(200).json({ message: "User successfully deleted."})
+    })
+}
+
 module.exports = {
     registerUser,
     loginUser,
-    getUsers
+    getUsers,
+    updateUserProfile,
+    updateUserPassword,
+    deleteUser
 };

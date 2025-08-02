@@ -90,7 +90,7 @@ const getProducts = (req, res) => {
 const createProduct = (req, res) => {
     const { product_name, product_description, product_price, category_id} = req.body
     const query = "INSERT INTO products (product_name, product_description, product_price, category_id) VALUES (?, ?, ?, ?)"
-    db.query(query, [product_name, product_description, product_price], (error, result) => {
+    db.query(query, [product_name, product_description, product_price, category_id], (error, result) => {
         if (error) {
             return res.status(500).json({
                 error: error.message
