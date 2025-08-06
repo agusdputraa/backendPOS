@@ -9,5 +9,7 @@ router.get("/", [authenticateToken, authorizeSuperadmin], userController.getUser
 router.put("/profile", authenticateToken, userController.updateUserProfile);
 router.put("/password", authenticateToken, userController.updateUserPassword);
 router.delete("/:id", [authenticateToken, authorizeSuperadmin], userController.deleteUser);
+router.patch("/:id/role", [authenticateToken, authorizeSuperadmin], userController.updateUserRole);
+
 
 module.exports = router;

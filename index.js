@@ -7,6 +7,7 @@ const dotenv = require ("dotenv")
 dotenv.config()
 
 app.use(express.json())
+app.use(`/uploads`, express.static(`uploads`))
 
 app.use("/products", productRoutes)
 app.use("/categories", categoryRoutes)

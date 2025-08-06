@@ -1,71 +1,71 @@
-const db = require("../configs/db");
+const db = require("../configs/db")
 
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const { v4: uuidv4 } = require("uuid");
+const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken")
+const { v4: uuidv4 } = require("uuid")
 
 const registerUser = async (req, res) => {
     try {
         db.query("SELECT COUNT(*) as userCount FROM users", async (error, results) => {
             if (error) {
-                return res.status(500).json({ error: "Failed to check database." });
+                return res.status(500).json({ error: "Failed to check database." })
             }
 
-            const { userCount } = results[0];
-            const role = userCount === 0 ? "Superadmin" : "Customer";
+            const { userCount } = results[0]
+            const role = userCount === 0 ? "Superadmin" : "Customer"
 
-            const { first_name, last_name, email, password } = req.body;
+            const { first_name, last_name, email, password } = req.body
 
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(password, 10)
             
-            const userId = uuidv4();
+            const userId = uuidv4()
 
-            const query = "INSERT INTO users (id, first_name, last_name, email, password, role) VALUES (?, ?, ?, ?, ?, ?)";
-            const params = [userId, first_name, last_name, email, hashedPassword, role];
+            const query = "INSERT INTO users (id, first_name, last_name, email, password, role) VALUES (?, ?, ?, ?, ?, ?)"
+            const params = [userId, first_name, last_name, email, hashedPassword, role]
 
             db.query(query, params, (error, result) => {
                 if (error) {
-                    return res.status(500).json({ error: "Failed to register: " + error.message });
+                    return res.status(500).json({ error: "Failed to register: " + error.message })
                 }
 
                 res.status(201).json({
                     message: `User successfully registered as ${role}!`,
                     userId: userId
-                });
-            });
-        });
+                })
+            })
+        })
     } catch (error) {
-        res.status(500).json({ error: "Internal Server Error." });
+        res.status(500).json({ error: "Internal Server Error." })
     }
-};
+}
 
 const loginUser = (req, res) => {
-    const { email, password } = req.body;
+    const { email, password } = req.body
 
-    const query = "SELECT * FROM users WHERE email = ?";
+    const query = "SELECT * FROM users WHERE email = ?"
     db.query(query, [email], async (error, results) => {
         if (error) {
-            return res.status(500).json({ error: "Internal Server Error." });
+            return res.status(500).json({ error: "Internal Server Error." })
         }
         if (results.length === 0) {
-            return res.status(401).json({ error: "Email or password is incorrect." });
+            return res.status(401).json({ error: "Email or password is incorrect." })
         }
 
-        const user = results[0];
+        const user = results[0]
 
-        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        const isPasswordMatch = await bcrypt.compare(password, user.password)
 
         if (!isPasswordMatch) {
-            return res.status(401).json({ error: "Email or password is incorrect." });
+            return res.status(401).json({ error: "Email or password is incorrect." })
         }
 
         const payload = {
             id: user.id,
             email: user.email,
             role: user.role
-        };
+        }
         
-        const token = jwt.sign(payload, "CLASSIFIED", { expiresIn: '3h' });
+        const token = jwt.sign(payload, "CLASSIFIED", { expiresIn: '3h' })
 
         res.status(200).json({
             message: "Login successfull",
@@ -76,24 +76,24 @@ const loginUser = (req, res) => {
                 email: user.email,
                 role: user.role
             }
-        });
-    });
-};
+        })
+    })
+}
 
 const getUsers = (req, res) => {
-    const query = "SELECT id, CONCAT(first_name, ' ', last_name) AS fullName, email, role FROM users";
+    const query = "SELECT id, CONCAT(first_name, ' ', last_name) AS fullName, email, role FROM users"
 
     db.query(query, (error, results) => {
         if (error) {
-            return res.status(500).json({ error: "Internal Server Error." });
+            return res.status(500).json({ error: "Internal Server Error." })
         }
 
         res.status(200).json({
             message: "Getting all users data successfully.",
             data: results
-        });
-    });
-};
+        })
+    })
+}
 
 const updateUserProfile = (req, res) => {
     const userId = req.user.id
@@ -153,11 +153,32 @@ const deleteUser = (req, res) => {
     })
 }
 
+const updateUserRole = (req, res) => {
+    const userIdToUpdate = req.params.id
+    const { role } = req.body
+
+    if (role !== 'Superadmin' && role !== 'Customer') {
+        return res.status(400).json({ error: "Role not valid." })
+    }
+
+    const query = "UPDATE users SET role = ? WHERE id = ?"
+    db.query(query, [role, userIdToUpdate], (error, result) => {
+        if (error) {
+            return res.status(500).json({ error: "Failed updating user: " + error.message })
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "User not found." })
+        }
+        res.status(200).json({ message: `user role successfully updated into ${role}.` })
+    })
+}
+
 module.exports = {
     registerUser,
     loginUser,
     getUsers,
     updateUserProfile,
     updateUserPassword,
-    deleteUser
-};
+    deleteUser,
+    updateUserRole
+}
